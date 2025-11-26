@@ -191,15 +191,6 @@ class LinuxPageReplacement {
         System.out.println("Active: " + activeList.stream().map(Page::toString).toList() +
                 " | Inactive: " + inactiveList.stream().map(Page::toString).toList());
     }
-
-    public void displayStats() {
-        double ratio = activeList.size() * 100.0 / (activeList.size() + inactiveList.size());
-        System.out.println("\n=== Statistics ===");
-        System.out.println("Active: " + activeList.size() + " pages (" + String.format("%.1f", ratio) + "%)");
-        System.out.println("Inactive: " + inactiveList.size() + " pages (" + String.format("%.1f", 100-ratio) + "%)");
-        System.out.println("Total: " + pageMap.size() + "/" + totalCapacity);
-        System.out.println("Target ratio: ~67% active, ~33% inactive");
-    }
 }
 
 // Main demonstration
