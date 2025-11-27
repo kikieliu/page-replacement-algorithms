@@ -11,11 +11,23 @@ class WindowPage{
         this.referenced = true;
     }
 
+    /**************************************************************/
+    /* Method: markedAccess */
+    /* Purpose: set the last time page was accessed and set reference to true */
+    /* Parameters: */
+    /* Returns: void */
+    /**************************************************************/
     public void markAccessed(){
         this.lastAccessTime = System.currentTimeMillis();
         this.referenced = true;
     }
 
+    /**************************************************************/
+    /* Method: toString */
+    /* Purpose: print * if the page has been referenced */
+    /* Parameters: */
+    /* Returns: String */
+    /**************************************************************/
     public String toString(){
         if(referenced){
             return pageNumber + "*";
@@ -42,12 +54,17 @@ class WorkingSet{
         this.lastReferenceClearTime = System.currentTimeMillis();
     }
 
-    // If we are trying to access a page that is currently in the working set
-    // then their reference bit will be set to true. Otherwise a page fault occurs
+    /**************************************************************/
+    /* Method: accessPage */
+    /* Purpose: Set the pages reference to true, otherwise handle page fault */
+    /* Parameters: */
+    /* int pageNumber: page we are trying to access */
+    /* Returns: void */
+    /**************************************************************/
     public void accessPage(int pageNumber){
         totalAccesses++;
 
-        clearStaleReferences(); //after a certain amount of time, set refrence boolean to false
+        clearReference(); //after a certain amount of time, set refrence boolean to false
 
         if(pages.containsKey(pageNumber)){
             WindowPage p = pages.get(pageNumber);
@@ -61,8 +78,14 @@ class WorkingSet{
         trimWorkingSet(); // This will remove old pages that arent being referenced
     }
 
-    // Clear reference bits periodically
-    private void clearStaleReferences(){
+    /**************************************************************/
+    /* Method: clearReference */
+    /* Purpose: After a certain time, if a page hasnt been referenced clear its */
+    /* reference boolean */
+    /* Parameters: */
+    /* Returns: void */
+    /**************************************************************/
+    private void clearReference(){
         long currentTime = System.currentTimeMillis();
         if(currentTime - lastReferenceClearTime > REFERENCE_CLEAR_INTERVAL){
             for(WindowPage p : pages.values()){
@@ -73,8 +96,13 @@ class WorkingSet{
         }
     }
 
-    //If the last reference time is larger than the reference time threshold
-    // set the reference bit for a page to false
+    /**************************************************************/
+    /* Method: handlePageFault */
+    /* Purpose: If there is enough space in the working set, add new page */
+    /* Parameters: */
+    /* int pageNumber: page number we are trying to access */
+    /* Returns: void */
+    /**************************************************************/
     private void handlePageFault(int pageNumber){
         System.out.println("Page fault for page " + pageNumber);
 
@@ -89,7 +117,13 @@ class WorkingSet{
         System.out.println("Added page " + pageNumber);
     }
 
-    // This method removes old pages from the working set
+    /**************************************************************/
+    /* Method: search */
+    /* Purpose: If its been too long since a page has been referenced, remove */
+    /* page from working set */
+    /* Parameters: */
+    /* Returns: void */
+    /**************************************************************/
     private void removeOldPages(){
         long currentTime = System.currentTimeMillis();
         List<Integer> toRemove = new ArrayList<>();
@@ -117,7 +151,13 @@ class WorkingSet{
         }
     }
 
-    //This method determines which page in the working set is the oldest
+    /**************************************************************/
+    /* Method: removeOldestPage */
+    /* Purpose: Finds oldest page in the working set and remove it  */
+    /* to find a particular book */
+    /* Parameters: */
+    /* Returns: void */
+    /**************************************************************/
     private void removeOldestPage(){
         WindowPage oldest = null;
         long oldestTime = Long.MAX_VALUE;
@@ -135,7 +175,12 @@ class WorkingSet{
         }
     }
 
-    // Trim working set by removing unreferenced pages
+    /**************************************************************/
+    /* Method: trimWorkingSet */
+    /* Purpose: remove pages from the working set that are too old */
+    /* Parameters: */
+    /* Returns: void */
+    /**************************************************************/
     private void trimWorkingSet(){
         long currentTime = System.currentTimeMillis();
         List<Integer> toRemove = new ArrayList<>();
