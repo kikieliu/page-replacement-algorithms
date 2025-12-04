@@ -38,18 +38,16 @@ class WindowPage{
 
 class WorkingSet{
     int maxSize;
-    long ageThreshold; // in ms
+    long ageThreshold;
     Map<Integer, WindowPage> pages;
-    int pageFaults;
     int totalAccesses;
     long lastReferenceClearTime;
-    static final long REFERENCE_CLEAR_INTERVAL = 1000;
+    static long REFERENCE_CLEAR_INTERVAL = 1000;
 
     public WorkingSet(int maxSize, long ageThreshold){
         this.maxSize = maxSize;
         this.ageThreshold = ageThreshold;
         this.pages = new HashMap<>();
-        this.pageFaults = 0;
         this.totalAccesses = 0;
         this.lastReferenceClearTime = System.currentTimeMillis();
     }
@@ -71,7 +69,6 @@ class WorkingSet{
             p.markAccessed();
             System.out.println("  Page " + pageNumber + " hit in working set");
         }else{
-            pageFaults++;
             handlePageFault(pageNumber);
         }
 
@@ -124,25 +121,25 @@ class WorkingSet{
     /**************************************************************/
     private void removeOldPages(){
         long currentTime = System.currentTimeMillis();
-        List<Integer> toRemove = new ArrayList<>();
-
-
+        List<Integer> removePages = new ArrayList<>();
+        
         /*
         Look through all the pages in the working set. If a page has been idle
-        for too long then add it tot the toRemove ArrayList
+        for too long then add it tot the removePages ArrayList
         */
         for(WindowPage p : pages.values()){
             long age = currentTime - p.lastAccessTime;
             if(age > ageThreshold && !p.referenced){
-                toRemove.add(p.pageNumber);
+                System.out.println("  Page " + p.pageNumber + " removed from working set");
+                removePages.add(p.pageNumber);
             }
         }
         // If no pages are found remove the oldest page in the current working set
-        if(toRemove.isEmpty()){
+        if(removePages.isEmpty()){
             removeOldestPage();
         }else{
-            for(int num : toRemove){
-                // Otherwise remove all the pages in the toRemove ArrayList
+            for(int num : removePages){
+                // Otherwise remove all the pages in the removePages ArrayList
                 pages.remove(num);
             }
         }
@@ -167,6 +164,7 @@ class WorkingSet{
         }
 
         if(oldest != null){
+            System.out.println("  Page " + oldest.pageNumber + " removed from working set");
             pages.remove(oldest.pageNumber);
         }
     }
@@ -179,7 +177,7 @@ class WorkingSet{
     /**************************************************************/
     private void trimWorkingSet(){
         long currentTime = System.currentTimeMillis();
-        List<Integer> toRemove = new ArrayList<>();
+        List<Integer> removePages = new ArrayList<>();
         //Look through all pages in the working set
         for(WindowPage p : pages.values()){
             long age = currentTime - p.lastAccessTime;
@@ -191,19 +189,20 @@ class WorkingSet{
                     p.referenced = false;
                 }else{
                     // Otherwise remove the page
-                    toRemove.add(p.pageNumber);
+                    System.out.println("  Page " + p.pageNumber + " removed from working set");
+                    removePages.add(p.pageNumber);
                 }
             }
         }
 
         // remove pages
-        for(int num : toRemove){
+        for(int num : removePages){
             pages.remove(num);
         }
     }
 
-    public void printState(){
-        System.out.println("  Working Set: " + pages.keySet() + " | Size: " + pages.size() + "/" + maxSize);
+    public void print(){
+        System.out.println("  Working Set: " + pages.values() + " | Size: " + pages.size() + "/" + maxSize);
     }
 }
 
@@ -211,16 +210,19 @@ public class Windows{
     public static void main(String[] args) throws InterruptedException{
         System.out.println("=== Windows Working Set Page Management ===\n");
 
-        WorkingSet ws = new WorkingSet(8, 1500);
+        WorkingSet ws = new WorkingSet(8, 1000);
 
         int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
-
+        //int[] sequence = {1,3,4,5,2,5,4,3,6,3,2,4,6,3,5,6,3};
         for(int page : sequence){
             System.out.println("Access page " + page);
             ws.accessPage(page);
-            ws.printState();
+            ws.print();
             System.out.println();
-            Thread.sleep(150);
+
+            //necessary so referenced bits can be cleared
+            //If not present the program finishes too fast
+            Thread.sleep(100);
         }
     }
 }

@@ -29,14 +29,13 @@ class LinuxPage {
 
 // Linux 2.4 Two-List Page Replacement Algorithm
 class LinuxPageReplacement {
-    private final int totalCapacity; //number of pages the two lists can hold
+    private int totalCapacity; //number of pages the two lists can hold
     private LinkedList<LinuxPage> activeList;
     private LinkedList<LinuxPage> inactiveList;
     private Map<Integer, LinuxPage> pageMap;
 
     // Constants from Linux kernel
-    private static final int SWAP_CLUSTER_MAX = 32;
-    private static final int DEF_PRIORITY = 6;
+    private static int DEF_PRIORITY = 6;
 
     public LinuxPageReplacement(int capacity) {
         this.totalCapacity = capacity;
@@ -174,24 +173,24 @@ class LinuxPageReplacement {
     /* Purpose: If there is not enough room in the inactive list then remove */
     /* pages from the inactive list  */
     /* Parameters: */
-    /* int nrPages: number of pages to remove */
+    /* int numPages: number of pages to remove */
     /* Returns: void */
     /**************************************************************/
-    private void reclaimPages(int nrPages) {
-        System.out.println("  Reclaiming " + nrPages + " page(s) from inactive list");
-        int remaining = nrPages;
+    private void reclaimPages(int numPages) {
+        System.out.println("  Reclaiming " + numPages + " page(s) from inactive list");
+        int remaining = numPages;
         while(remaining > 0 && (!inactiveList.isEmpty() || !activeList.isEmpty())) {
             int freedPages = 0;
-            int maxScan = Math.max(inactiveList.size() / DEF_PRIORITY, nrPages * 2);
+            int maxScan = Math.max(inactiveList.size() / DEF_PRIORITY, numPages * 2);
             int scanned = 0;
 
-            Iterator<LinuxPage> iterator = inactiveList.descendingIterator();
+            Iterator<LinuxPage> index = inactiveList.descendingIterator();
             List<LinuxPage> toRemove = new ArrayList<>();
 
             //Start scanning from the tail of the inactive list
             //Do not stop until we have freed enough pages or reached the scan limit or have run out of pages to scan
-            while (iterator.hasNext() && freedPages < remaining && scanned < maxScan) {
-                LinuxPage page = iterator.next();
+            while (index.hasNext() && freedPages < remaining && scanned < maxScan) {
+                LinuxPage page = index.next();
                 scanned++;
 
                 //If the page has not been referenced since being put in the inactive list
@@ -211,16 +210,16 @@ class LinuxPageReplacement {
             }
             remaining -= freedPages;
 
-            if (remaining > 0) {
-                if(activeList.isEmpty()) break;
+            if (remaining > 0 && !activeList.isEmpty()) {
+                //if(activeList.isEmpty()) break;
                 refillInactive();
             }
         }
     }
 
     public void display() {
-        System.out.println("  Active: " + activeList.stream().map(LinuxPage::toString).toList() +
-                " | Inactive: " + inactiveList.stream().map(LinuxPage::toString).toList());
+        System.out.println("  Active: " + activeList +
+                " | Inactive: " + inactiveList);
     }
 }
 
