@@ -1,12 +1,12 @@
 import java.util.*;
 
 class MacPage{
-    int number;
+    int pageNumber;
     boolean modified;
     long lastAccessTime;
 
-    public MacPage(int number){
-        this.number = number;
+    public MacPage(int pageNumber){
+        this.pageNumber = pageNumber;
         this.modified = false;
         this.lastAccessTime = System.currentTimeMillis();
     }
@@ -27,15 +27,15 @@ class MacPage{
 
     /**************************************************************/
     /* Method: toString */
-    /* Purpose: prints the page number and if its been modified */
+    /* Purpose: prints the page pageNumber and if its been modified */
     /* Parameters: */
     /* Returns: String */
     /**************************************************************/
     public String toString(){
         if(modified){
-            return number + "m"; // m = modified
+            return pageNumber + "m"; // m = modified
         }
-        return "" + number;
+        return "" + pageNumber;
     }
 }
 
@@ -50,12 +50,9 @@ class MacOSVM{
 
     Map<Integer, MacPage> pageTable; // which virtual page is in RAM
 
-    int softFaults;  // inactive -> active
-    int hardFaults;  // not resident at all
-
     // age thresholds
-    long ACTIVE_TO_INACTIVE_AGE = 400;
-    long INACTIVE_TO_FREE_AGE = 800;
+    long activeThreshold = 400;
+    long inactiveThreshold = 800;
 
     public MacOSVM(int maxPhysicalPages){
         this.maxPhysicalPages = maxPhysicalPages;
@@ -72,10 +69,7 @@ class MacOSVM{
         this.active = new ArrayList<>();
         this.inactive = new ArrayList<>();
         this.freePages = maxPhysicalPages;
-
         this.pageTable = new HashMap<>();
-        this.softFaults = 0;
-        this.hardFaults = 0;
     }
 
     /**************************************************************/
@@ -105,7 +99,6 @@ class MacOSVM{
             // page is resident
             if(inactive.contains(page)){
                 // soft fault: was in RAM but on inactive list
-                softFaults++;
                 inactive.remove(page);
                 active.add(page);
                 System.out.println("Soft fault: page " + pageNumber + " moved to active list");
@@ -115,16 +108,10 @@ class MacOSVM{
             page.touch(write);
         }else{
             // hard fault: page not in memory at all
-            hardFaults++;
             System.out.println("Hard fault: page " + pageNumber + " not in memory");
 
             if(freePages == 0){
                 //If there is no free pages then reclaim memory
-                pageOutDaemon();
-            }
-
-            //If there are no pages after reclamation then start removing inactive pages
-            if(freePages == 0) {
                 pageOutDaemon();
             }
 
@@ -138,7 +125,7 @@ class MacOSVM{
                 pageTable.put(pageNumber, newPage);
                 System.out.println("Loaded page " + pageNumber + " into active list");
             }else{
-                System.out.println("No free pages available! (simulation limit)");
+                System.out.println("No free pages available!");
             }
         }
 
@@ -174,7 +161,7 @@ class MacOSVM{
 
         for(MacPage p : active){
             long age = now - p.lastAccessTime;
-            if(age > ACTIVE_TO_INACTIVE_AGE){
+            if(age > activeThreshold){
                 toMove.add(p);
             }
         }
@@ -182,7 +169,7 @@ class MacOSVM{
         for(MacPage p : toMove){
             active.remove(p);
             inactive.add(p);
-            System.out.println("Moved page " + p.number + " from active to inactive");
+            System.out.println("Moved page " + p.pageNumber + " from active to inactive");
         }
     }
 
@@ -194,27 +181,26 @@ class MacOSVM{
     /**************************************************************/
     private void pageOutDaemon(){
         long now = System.currentTimeMillis();
-        System.out.println("Page-out daemon running...");
+        System.out.println("Page-out daemon");
+        boolean urgent = false;
+        if(freePages == 0){
+            urgent = true;
+        }
 
-        // Urgent mode: we're completely out of free pages.
-        boolean urgent = (freePages == 0);
-
-        Iterator<MacPage> it = inactive.iterator();
-        while(it.hasNext() && freePages < targetFree){
-            MacPage p = it.next();
+        Iterator<MacPage> index = inactive.iterator();
+        while(index.hasNext() && freePages < targetFree){
+            MacPage p = index.next();
             long age = now - p.lastAccessTime;
-
-            // Normal case: only free sufficiently old inactive pages.
-            // Urgent case (freePages == 0): free anything on inactive.
-            if(age > INACTIVE_TO_FREE_AGE || urgent){
+            
+            if(age > inactiveThreshold || urgent){
                 if(p.modified){
-                    System.out.println("Paging out modified page " + p.number + " to disk");
+                    System.out.println("Paging out modified page " + p.pageNumber + " to disk");
                 }else{
-                    System.out.println("Dropping clean page " + p.number);
+                    System.out.println("Dropping clean page " + p.pageNumber);
                 }
 
-                it.remove();
-                pageTable.remove(p.number);
+                index.remove();
+                pageTable.remove(p.pageNumber);
                 freePages++;
             }
         }
@@ -224,7 +210,6 @@ class MacOSVM{
         System.out.println("Active: " + listPages(active));
         System.out.println("Inactive: " + listPages(inactive));
         System.out.println("Free pages: " + freePages);
-        System.out.println("Soft faults: " + softFaults + ", Hard faults: " + hardFaults);
         System.out.println();
     }
 
