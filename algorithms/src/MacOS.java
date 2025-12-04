@@ -124,11 +124,8 @@ class MacOSVM{
             }
 
             //If there are no pages after reclamation then start removing inactive pages
-            if(freePages == 0 && !inactive.isEmpty()){
-                MacPage victim = inactive.remove(0);
-                pageTable.remove(victim.number);
-                freePages++;
-                System.out.println("Forced free of inactive page " + victim.number);
+            if(freePages == 0) {
+                pageOutDaemon();
             }
 
             //If there is room then set the modified boolean value and add it to
@@ -199,12 +196,17 @@ class MacOSVM{
         long now = System.currentTimeMillis();
         System.out.println("Page-out daemon running...");
 
+        // Urgent mode: we're completely out of free pages.
+        boolean urgent = (freePages == 0);
+
         Iterator<MacPage> it = inactive.iterator();
         while(it.hasNext() && freePages < targetFree){
             MacPage p = it.next();
             long age = now - p.lastAccessTime;
 
-            if(age > INACTIVE_TO_FREE_AGE){
+            // Normal case: only free sufficiently old inactive pages.
+            // Urgent case (freePages == 0): free anything on inactive.
+            if(age > INACTIVE_TO_FREE_AGE || urgent){
                 if(p.modified){
                     System.out.println("Paging out modified page " + p.number + " to disk");
                 }else{
@@ -239,7 +241,7 @@ public class MacOS{
     public static void main(String[] args) throws InterruptedException{
         MacOSVM vm = new MacOSVM(5);
 
-        int[] sequence = {1,2,3,4,1,2,5,6,1,2,3,4,5,6};
+        int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
         Random r = new Random();
 
         for(int i = 0; i < sequence.length; i++){

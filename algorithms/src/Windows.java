@@ -69,7 +69,7 @@ class WorkingSet{
         if(pages.containsKey(pageNumber)){
             WindowPage p = pages.get(pageNumber);
             p.markAccessed();
-            System.out.println("Page " + pageNumber + " hit");
+            System.out.println("  Page " + pageNumber + " hit in working set");
         }else{
             pageFaults++;
             handlePageFault(pageNumber);
@@ -92,7 +92,6 @@ class WorkingSet{
                 p.referenced = false;
             }
             lastReferenceClearTime = currentTime;
-            System.out.println("Cleared all reference bits");
         }
     }
 
@@ -104,7 +103,7 @@ class WorkingSet{
     /* Returns: void */
     /**************************************************************/
     private void handlePageFault(int pageNumber){
-        System.out.println("Page fault for page " + pageNumber);
+        System.out.println("  Page fault - adding page " + pageNumber);
 
         // If the working set is full then the algorithm will begin removing old pages in the set
         if(pages.size() >= maxSize){
@@ -114,7 +113,6 @@ class WorkingSet{
         // When there is room a new page is created
         WindowPage p = new WindowPage(pageNumber);
         pages.put(pageNumber, p);
-        System.out.println("Added page " + pageNumber);
     }
 
     /**************************************************************/
@@ -146,7 +144,6 @@ class WorkingSet{
             for(int num : toRemove){
                 // Otherwise remove all the pages in the toRemove ArrayList
                 pages.remove(num);
-                System.out.println("Removed old page " + num);
             }
         }
     }
@@ -171,7 +168,6 @@ class WorkingSet{
 
         if(oldest != null){
             pages.remove(oldest.pageNumber);
-            System.out.println("Removed oldest page " + oldest.pageNumber);
         }
     }
 
@@ -203,66 +199,28 @@ class WorkingSet{
         // remove pages
         for(int num : toRemove){
             pages.remove(num);
-            System.out.println("Trimmed page " + num);
         }
     }
 
     public void printState(){
-        System.out.println("\n=== Working Set State ===");
-        System.out.println("Working Set: " + pages.keySet());
-        System.out.println("Size: " + pages.size() + "/" + maxSize);
-
-        long currentTime = System.currentTimeMillis();
-        System.out.println("Page ages (ms):");
-        for(WindowPage p : pages.values()){
-            long age = currentTime - p.lastAccessTime;
-            System.out.print("  Page " + p + ": " + age + "ms");
-            if(p.referenced){
-                System.out.print(" (referenced)");
-            }
-            System.out.println();
-        }
+        System.out.println("  Working Set: " + pages.keySet() + " | Size: " + pages.size() + "/" + maxSize);
     }
-
-    public int getPageFaults(){return pageFaults;}
-    public int getTotalAccesses(){return totalAccesses;}
 }
 
 public class Windows{
     public static void main(String[] args) throws InterruptedException{
-        System.out.println("=== Windows Working Set Demo ===\n");
+        System.out.println("=== Windows Working Set Page Management ===\n");
 
-        WorkingSet ws = new WorkingSet(6, 1500);
+        WorkingSet ws = new WorkingSet(8, 1500);
 
-        System.out.println("=== Phase 1: Build Working Set ===");
-        int[] phase1 = {1, 2, 3, 1, 2, 4, 5};
-        for(int page : phase1){
-            System.out.println("\nAccess " + page);
+        int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
+
+        for(int page : sequence){
+            System.out.println("Access page " + page);
             ws.accessPage(page);
             ws.printState();
-            Thread.sleep(100);
-        }
-
-        System.out.println("\n=== Phase 2: Add More Pages ===");
-        int[] phase2 = {6, 7, 7, 8, 9, 4, 5, 1, 5, 6, 2, 1, 8};
-        for(int page : phase2){
-            System.out.println("\nAccess " + page);
-            ws.accessPage(page);
-            ws.printState();
+            System.out.println();
             Thread.sleep(150);
         }
-
-        System.out.println("\n=== Phase 3: Random Accesses ===");
-        Random rand = new Random();
-        for(int i = 0; i < 15; i++){
-            int page = rand.nextInt(8); // 0–7
-            System.out.println("\nAccess " + page);
-            ws.accessPage(page);
-            ws.printState();
-            Thread.sleep(80);
-        }
-
-        System.out.println("\nTotal accesses: " + ws.getTotalAccesses());
-        System.out.println("Page faults: " + ws.getPageFaults());
     }
 }
