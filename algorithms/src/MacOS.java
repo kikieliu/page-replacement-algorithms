@@ -96,9 +96,8 @@ class MacOSVM{
         // 2. Otherwise the page is not in memory add it to the active list if Otherwise
         // is room
         if(page != null){
-            // page is resident
             if(inactive.contains(page)){
-                // soft fault: was in RAM but on inactive list
+                // soft fault: was in RAM but on active list
                 inactive.remove(page);
                 active.add(page);
                 System.out.println("Soft fault: page " + pageNumber + " moved to active list");
@@ -225,16 +224,36 @@ class MacOSVM{
 public class MacOS{
     public static void main(String[] args) throws InterruptedException{
         MacOSVM vm = new MacOSVM(5);
+        System.out.println("=== MacOS Page Replacement ===\n");
 
-        int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
-        Random r = new Random();
 
+        System.out.println("=== Adding Pages to RAM ===\n");
+        int[] sequence = {1, 2, 3, 1, 4};
         for(int i = 0; i < sequence.length; i++){
             int page = sequence[i];
-            boolean write = r.nextInt(3) == 0; // ~1/3 of accesses are writes
+            boolean write = false; //Write does not affect the algorithm, just set it to false so its easier to read
             vm.accessPage(page, write);
             vm.printState();
-            Thread.sleep(150); // sleep so ages change over time
+            Thread.sleep(100); // sleep so ages change over time
+        }
+
+        System.out.println("=== Testing Page Out Daemon ===\n");
+        int[] sequence1 = {7,8,9};
+        for(int i = 0; i < sequence1.length; i++){
+            int page = sequence1[i];
+            boolean write = false; //Write does not affect the algorithm, just set it to false so its easier to read
+            vm.accessPage(page, write);
+            vm.printState();
+            Thread.sleep(100); // sleep so ages change over time
+        }
+
+        System.out.println("=== Active to Inactive ===\n");
+        for(int i = 0; i < 3; i++){
+            int page = 1;
+            boolean write = false; //Write does not affect the algorithm, just set it to false so its easier to read
+            vm.accessPage(page, write);
+            vm.printState();
+            Thread.sleep(100); // sleep so ages change over time
         }
     }
 }

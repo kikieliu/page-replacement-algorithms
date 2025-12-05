@@ -40,7 +40,7 @@ class WorkingSet{
     int maxSize;
     long ageThreshold;
     Map<Integer, WindowPage> pages;
-    int totalAccesses;
+    //int totalAccesses;
     long lastReferenceClearTime;
     static long REFERENCE_CLEAR_INTERVAL = 1000;
 
@@ -48,7 +48,7 @@ class WorkingSet{
         this.maxSize = maxSize;
         this.ageThreshold = ageThreshold;
         this.pages = new HashMap<>();
-        this.totalAccesses = 0;
+        //this.totalAccesses = 0;
         this.lastReferenceClearTime = System.currentTimeMillis();
     }
 
@@ -60,14 +60,14 @@ class WorkingSet{
     /* Returns: void */
     /**************************************************************/
     public void accessPage(int pageNumber){
-        totalAccesses++;
+        //totalAccesses++;
 
         clearReference(); //after a certain amount of time, set refrence boolean to false
 
         if(pages.containsKey(pageNumber)){
             WindowPage p = pages.get(pageNumber);
             p.markAccessed();
-            System.out.println("  Page " + pageNumber + " hit in working set");
+            System.out.println("  Page " + pageNumber + " hit");
         }else{
             handlePageFault(pageNumber);
         }
@@ -208,20 +208,43 @@ class WorkingSet{
 
 public class Windows{
     public static void main(String[] args) throws InterruptedException{
-        System.out.println("=== Windows Working Set Page Management ===\n");
 
         WorkingSet ws = new WorkingSet(8, 1000);
+        System.out.println("=== Windows Working Set Page Management ===\n");
 
-        int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
-        //int[] sequence = {1,3,4,5,2,5,4,3,6,3,2,4,6,3,5,6,3};
-        for(int page : sequence){
+        System.out.println("=== Adding to Work Set ===\n");
+        int[] sequence = {1,2,3,4,5,6,7,8};
+        for(int page : sequence) {
             System.out.println("Access page " + page);
             ws.accessPage(page);
             ws.print();
             System.out.println();
+        }
 
-            //necessary so referenced bits can be cleared
-            //If not present the program finishes too fast
+        System.out.println("=== Testing Remove Oldest ===\n");
+        int[] sequence1 = {1,3,4,6,9};
+        for(int page : sequence1) {
+            System.out.println("Access page " + page);
+            ws.accessPage(page);
+            ws.print();
+            System.out.println();
+        }
+
+        System.out.println("=== Testing Set Trimming ===\n");
+        for(int i = 0; i < 10; i++) {
+            System.out.println("Access page 1");
+            ws.accessPage(1);
+            ws.print();
+            System.out.println();
+            Thread.sleep(200);
+        }
+
+        System.out.println("=== Testing Reference Bit Clearing ===\n");
+        for(int i = 0; i < 6; i++) {
+            System.out.println("Access page 2");
+            ws.accessPage(2);
+            ws.print();
+            System.out.println();
             Thread.sleep(200);
         }
     }
