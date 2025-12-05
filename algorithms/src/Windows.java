@@ -222,7 +222,7 @@ public class Windows{
 
             //necessary so referenced bits can be cleared
             //If not present the program finishes too fast
-            Thread.sleep(100);
+            Thread.sleep(200);
         }
     }
 }

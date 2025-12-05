@@ -177,7 +177,7 @@ class LinuxPageReplacement {
     /* Returns: void */
     /**************************************************************/
     private void reclaimPages(int numPages) {
-        System.out.println("  Reclaiming " + numPages + " page(s) from inactive list");
+        System.out.println("  Reclaiming page(s) from inactive list");
         int remaining = numPages;
         while(remaining > 0 && (!inactiveList.isEmpty() || !activeList.isEmpty())) {
             int freedPages = 0;
@@ -185,7 +185,8 @@ class LinuxPageReplacement {
             int scanned = 0;
 
             Iterator<LinuxPage> index = inactiveList.descendingIterator();
-            List<LinuxPage> toRemove = new ArrayList<>();
+            List<LinuxPage> removePage = new ArrayList<>();
+            List<LinuxPage> referencedPages = new ArrayList<>();
 
             //Start scanning from the tail of the inactive list
             //Do not stop until we have freed enough pages or reached the scan limit or have run out of pages to scan
@@ -196,17 +197,25 @@ class LinuxPageReplacement {
                 //If the page has not been referenced since being put in the inactive list
                 //then add to the to remove list
                 if (!page.referenced) {
-                    toRemove.add(page);
+                    removePage.add(page);
                     freedPages++;
                 } else {
                     // If the page has been referenced, set the reference to false have give it a second chance
                     page.referenced = false;
+                    referencedPages.add(page);
                 }
             }
             // Remove all pages in the remove list
-            for (LinuxPage page : toRemove) {
+            for (LinuxPage page : removePage) {
                 inactiveList.remove(page);
+                System.out.println("  Removing page " + page);
                 pageMap.remove(page.pageNumber);
+            }
+            for (LinuxPage page : referencedPages) {
+                inactiveList.remove(page);
+                System.out.println("  Giving page " + page + " a second chance");
+                activeList.addFirst(page);
+                page.active = true;
             }
             remaining -= freedPages;
 
