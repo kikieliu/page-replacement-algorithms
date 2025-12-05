@@ -3,16 +3,16 @@ import java.util.*;
 class LinuxPage {
     int pageNumber;
     boolean referenced;
-    boolean dirty;
     boolean active;
-    long lastAccessTime;
+    //boolean dirty;
+    //long lastAccessTime;
 
     public LinuxPage(int pageNumber) {
         this.pageNumber = pageNumber;
         this.referenced = false;
-        this.dirty = false;
         this.active = false;
-        this.lastAccessTime = System.nanoTime();
+        //this.dirty = false;
+        //this.lastAccessTime = System.nanoTime();
     }
 
     /**************************************************************/
@@ -27,20 +27,16 @@ class LinuxPage {
     }
 }
 
-// Linux 2.4 Two-List Page Replacement Algorithm
 class LinuxPageReplacement {
     private int totalCapacity; //number of pages the two lists can hold
-    private LinkedList<LinuxPage> activeList;
-    private LinkedList<LinuxPage> inactiveList;
+    private ArrayList<LinuxPage> activeList;
+    private ArrayList<LinuxPage> inactiveList;
     private Map<Integer, LinuxPage> pageMap;
-
-    // Constants from Linux kernel
-    private static int DEF_PRIORITY = 6;
 
     public LinuxPageReplacement(int capacity) {
         this.totalCapacity = capacity;
-        this.activeList = new LinkedList<>();
-        this.inactiveList = new LinkedList<>();
+        this.activeList = new ArrayList<>();
+        this.inactiveList = new ArrayList<>();
         this.pageMap = new HashMap<>();
     }
 
@@ -53,7 +49,7 @@ class LinuxPageReplacement {
     /**************************************************************/
     public void accessPage(int pageNumber) {
         if (pageMap.containsKey(pageNumber)) {
-            markPageAccessed(pageNumber);
+            markAccessed(pageNumber);
         } else {
             handlePageFault(pageNumber);
         }
@@ -68,23 +64,26 @@ class LinuxPageReplacement {
     /* int pageNumber: page number we want to access */
     /* Returns: void */
     /**************************************************************/
-    private void markPageAccessed(int pageNumber) {
+    private void markAccessed(int pageNumber) {
         LinuxPage page = pageMap.get(pageNumber);
-        page.lastAccessTime = System.nanoTime();
+        //page.lastAccessTime = System.nanoTime();
 
         if (!page.active && !page.referenced) {
             page.referenced = true;
             System.out.println("  First reference to page " + pageNumber + " in inactive list");
         } else if (!page.active && page.referenced) {
-            activatePage(page);
+            //activatePage(page);
+            inactiveList.remove(page);
+            activeList.add(page);
+            page.active = true;
+            page.referenced = false;
             System.out.println("  Second reference - promoting page " + pageNumber + " to active list");
         } else if (page.active) {
             page.referenced = true;
             System.out.println("  Page " + pageNumber + " hit in active list");
         }
     }
-
-
+    
     /**************************************************************/
     /* Method: activatePage */
     /* Purpose: Moves a page from the inactive list to active list */
@@ -92,14 +91,16 @@ class LinuxPageReplacement {
     /* LinuxPage page: Page object we cant to move */
     /* Returns: void */
     /**************************************************************/
+    /*
     private void activatePage(LinuxPage page) {
         if (!page.active) {
             inactiveList.remove(page);
-            activeList.addFirst(page);
+            activeList.add(page);
             page.active = true;
             page.referenced = false;
         }
     }
+    */
 
     /**************************************************************/
     /* Method: handlePageFault */
@@ -118,7 +119,7 @@ class LinuxPageReplacement {
 
         //Since inactive list is a FIFO buffer the new page will be added to the beginning
         // of the buffer
-        inactiveList.addFirst(newPage);
+        inactiveList.add(newPage);
         newPage.active = false;
         pageMap.put(pageNumber, newPage);
         System.out.println("  Page fault - adding page " + pageNumber + " to inactive list");
@@ -149,21 +150,21 @@ class LinuxPageReplacement {
         //While the active list is not empty keep removing pages until the number of pages
         // to move is zero
         for (int i = 0; i < pagesToMove && !activeList.isEmpty(); i++) {
-            LinuxPage page = activeList.removeLast();
+            LinuxPage page = activeList.remove(activeList.size() - 1);
 
             //remove the last page in active list since its the least active page
             //If the page has been referenced recently move it to the start of the active list
             //and set its reference to false
             if (page.referenced) {
                 page.referenced = false;
-                activeList.addFirst(page);
+                activeList.add(page);
                 i--;
             } else {
                 // If the page has not been referenced recently then set its boolean values and add it to the
                 //beginning of the inactive list
                 page.active = false;
                 //page.referenced = false;
-                inactiveList.addFirst(page);
+                inactiveList.add(page);
             }
         }
     }
@@ -181,17 +182,16 @@ class LinuxPageReplacement {
         int remaining = numPages;
         while(remaining > 0 && (!inactiveList.isEmpty() || !activeList.isEmpty())) {
             int freedPages = 0;
-            int maxScan = Math.max(inactiveList.size() / DEF_PRIORITY, numPages * 2);
+            int maxScan = Math.max(inactiveList.size() / 6, numPages * 2);
             int scanned = 0;
 
-            Iterator<LinuxPage> index = inactiveList.descendingIterator();
             List<LinuxPage> removePage = new ArrayList<>();
-            List<LinuxPage> referencedPages = new ArrayList<>();
+            List<LinuxPage> secondChance = new ArrayList<>();
 
             //Start scanning from the tail of the inactive list
             //Do not stop until we have freed enough pages or reached the scan limit or have run out of pages to scan
-            while (index.hasNext() && freedPages < remaining && scanned < maxScan) {
-                LinuxPage page = index.next();
+             for(int i = inactiveList.size() - 1; i >= 0 && freedPages < remaining && scanned < maxScan; i--) {
+                LinuxPage page = inactiveList.get(i);
                 scanned++;
 
                 //If the page has not been referenced since being put in the inactive list
@@ -202,7 +202,7 @@ class LinuxPageReplacement {
                 } else {
                     // If the page has been referenced, set the reference to false have give it a second chance
                     page.referenced = false;
-                    referencedPages.add(page);
+                    secondChance.add(page);
                 }
             }
             // Remove all pages in the remove list
@@ -211,10 +211,11 @@ class LinuxPageReplacement {
                 System.out.println("  Removing page " + page);
                 pageMap.remove(page.pageNumber);
             }
-            for (LinuxPage page : referencedPages) {
+            //give referenced pages a second change
+            for (LinuxPage page : secondChance) {
                 inactiveList.remove(page);
                 System.out.println("  Giving page " + page + " a second chance");
-                activeList.addFirst(page);
+                activeList.add(page);
                 page.active = true;
             }
             remaining -= freedPages;
@@ -235,14 +236,48 @@ class LinuxPageReplacement {
 // Main demonstration
 public class Linux {
     public static void main(String[] args) {
-        System.out.println("=== Linux Two-List Page Replacement ===\n");
-
         LinuxPageReplacement lru = new LinuxPageReplacement(5);
+        System.out.println("=== Linux Page Replacement Test ===\n");
+        System.out.println("== Adding Pages to Inactive ===\n");
+        int[] pageSequence1 = {1,2,3,4,5};
+        for(int page: pageSequence1){
+            System.out.println("Access Page: " + page);
+            lru.accessPage(page);
+            lru.display();
+            System.out.println();
+        }
 
-        int[] sequence = {1, 2, 3, 4, 1, 2, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 9, 9, 8, 8, 7, 7, 6, 4, 4, 3, 3, 4, 2, 2, 5, 5,5, 2, 4, 1};
+        System.out.println("== Referencing Inactive Pages ===\n");
+        int[] pageSequence2 = {2,3,5};
+        for(int page: pageSequence2){
+            System.out.println("Access Page: " + page);
+            lru.accessPage(page);
+            lru.display();
+            System.out.println();
+        }
 
-        for (int page : sequence) {
-            System.out.println("Access page " + page);
+        System.out.println("== Testing Inactive Reclaiming ===\n");
+        int[] pageSequence3 = {6,8,9};
+        for(int page: pageSequence3){
+            System.out.println("Access Page: " + page);
+            lru.accessPage(page);
+            lru.display();
+            System.out.println();
+        }
+
+        System.out.println("== Testing Inactive to Active ===\n");
+        int[] pageSequence4 = {9,8,9,8};
+        for(int page: pageSequence4){
+            System.out.println("Access Page: " + page);
+            lru.accessPage(page);
+            lru.display();
+            System.out.println();
+        }
+
+        System.out.println("== Testing Inactive Refill ===\n");
+        int[] pageSequence5 = {1, 1, 4, 4, 7, 7};
+        for(int page: pageSequence5){
+            System.out.println("Access Page: " + page);
             lru.accessPage(page);
             lru.display();
             System.out.println();
