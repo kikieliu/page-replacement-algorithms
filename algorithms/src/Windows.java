@@ -67,7 +67,7 @@ class WorkingSet{
         if(pages.containsKey(pageNumber)){
             WindowPage p = pages.get(pageNumber);
             p.markAccessed();
-            System.out.println("  Page " + pageNumber + " hit");
+            System.out.println("    Page " + pageNumber + " hit");
         }else{
             handlePageFault(pageNumber);
         }
@@ -100,7 +100,7 @@ class WorkingSet{
     /* Returns: void */
     /**************************************************************/
     private void handlePageFault(int pageNumber){
-        System.out.println("  Page fault - adding page " + pageNumber);
+        System.out.println("    Page fault: Adding page " + pageNumber);
 
         // If the working set is full then the algorithm will begin removing old pages in the set
         if(pages.size() >= maxSize){
@@ -130,7 +130,7 @@ class WorkingSet{
         for(WindowPage p : pages.values()){
             long age = currentTime - p.lastAccessTime;
             if(age > ageThreshold && !p.referenced){
-                System.out.println("  Page " + p.pageNumber + " removed from working set");
+                System.out.println("    Page " + p.pageNumber + " removed from working set");
                 removePages.add(p.pageNumber);
             }
         }
@@ -147,7 +147,8 @@ class WorkingSet{
 
     /**************************************************************/
     /* Method: removeOldestPage */
-    /* Purpose: Finds oldest page in the working set and remove it  */
+    /* Purpose: If we could not remove any pages in the previous function  */
+    /* Then we must remove the oldest page in the working set ignoring references*/
     /* to find a particular book */
     /* Parameters: */
     /* Returns: void */
@@ -164,7 +165,7 @@ class WorkingSet{
         }
 
         if(oldest != null){
-            System.out.println("  Page " + oldest.pageNumber + " removed from working set");
+            System.out.println("    Page " + oldest.pageNumber + " removed from working set");
             pages.remove(oldest.pageNumber);
         }
     }
@@ -189,7 +190,7 @@ class WorkingSet{
                     p.referenced = false;
                 }else{
                     // Otherwise remove the page
-                    System.out.println("  Page " + p.pageNumber + " removed from working set");
+                    System.out.println("    Page " + p.pageNumber + " removed from working set");
                     removePages.add(p.pageNumber);
                 }
             }
@@ -199,10 +200,11 @@ class WorkingSet{
         for(int num : removePages){
             pages.remove(num);
         }
+
     }
 
     public void print(){
-        System.out.println("  Working Set: " + pages.values() + " | Size: " + pages.size() + "/" + maxSize);
+        System.out.println("    Working Set: " + pages.values() + " | Size: " + pages.size() + "/" + maxSize);
     }
 }
 
@@ -210,9 +212,9 @@ public class Windows{
     public static void main(String[] args) throws InterruptedException{
 
         WorkingSet ws = new WorkingSet(8, 1000);
-        System.out.println("=== Windows Working Set Page Management ===\n");
+        System.out.println("Windows Working Set Page Management\n");
 
-        System.out.println("=== Adding to Work Set ===\n");
+        System.out.println("Adding to Work Set\n");
         int[] sequence = {1,2,3,4,5,6,7,8};
         for(int page : sequence) {
             System.out.println("Access page " + page);
@@ -221,7 +223,7 @@ public class Windows{
             System.out.println();
         }
 
-        System.out.println("=== Testing Remove Oldest ===\n");
+        System.out.println("Testing Remove Oldest\n");
         int[] sequence1 = {1,3,4,6,9};
         for(int page : sequence1) {
             System.out.println("Access page " + page);
@@ -230,7 +232,7 @@ public class Windows{
             System.out.println();
         }
 
-        System.out.println("=== Testing Set Trimming ===\n");
+        System.out.println("Testing Set Trimming\n");
         for(int i = 0; i < 10; i++) {
             System.out.println("Access page 1");
             ws.accessPage(1);
@@ -239,7 +241,7 @@ public class Windows{
             Thread.sleep(200);
         }
 
-        System.out.println("=== Testing Reference Bit Clearing ===\n");
+        System.out.println("Testing Reference Bit Clearing\n");
         for(int i = 0; i < 6; i++) {
             System.out.println("Access page 2");
             ws.accessPage(2);
