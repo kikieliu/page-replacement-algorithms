@@ -39,7 +39,7 @@ class MacPage{
     }
 }
 
-class MacOSVM{
+class MacPageReplacement{
     int maxPhysicalPages;
     int minFree;
     int targetFree;
@@ -54,13 +54,14 @@ class MacOSVM{
     long activeThreshold = 400;
     long inactiveThreshold = 800;
 
-    public MacOSVM(int maxPhysicalPages){
+    public MacPageReplacement(int maxPhysicalPages){
         this.maxPhysicalPages = maxPhysicalPages;
 
         this.minFree = maxPhysicalPages / 4;
         if(this.minFree < 1){
             this.minFree = 1;
         }
+
         this.targetFree = maxPhysicalPages / 2;
         if(this.targetFree < this.minFree){
             this.targetFree = this.minFree;
@@ -100,14 +101,14 @@ class MacOSVM{
                 // soft fault: was in RAM but on active list
                 inactive.remove(page);
                 active.add(page);
-                System.out.println("Soft fault: page " + pageNumber + " moved to active list");
+                System.out.println("    Soft fault: page " + pageNumber + " moved to active list");
             }else{
-                System.out.println("Hit: page " + pageNumber + " already active");
+                System.out.println("    Hit: page " + pageNumber + " already active");
             }
             page.touch(write);
         }else{
             // hard fault: page not in memory at all
-            System.out.println("Hard fault: page " + pageNumber + " not in memory");
+            System.out.println("    Hard fault: page " + pageNumber + " not in memory");
 
             if(freePages == 0){
                 //If there is no free pages then reclaim memory
@@ -122,14 +123,16 @@ class MacOSVM{
                 newPage.touch(write);
                 active.add(newPage);
                 pageTable.put(pageNumber, newPage);
-                System.out.println("Loaded page " + pageNumber + " into active list");
+                System.out.println("    Load page " + pageNumber + " into active list");
             }else{
-                System.out.println("No free pages available!");
+                System.out.println("    No free pages available!");
             }
         }
 
         // after each access try to rebalance the lists
-        balanceQueues();
+        //Since we set maxPages to 5 this isnt necessary since its a small number
+        moveOldActiveToInactive();
+        //balanceQueues();
     }
 
     /**************************************************************/
@@ -138,6 +141,8 @@ class MacOSVM{
     /* Parameters: */
     /* Returns: void */
     /**************************************************************/
+
+    /*
     private void balanceQueues(){
         moveOldActiveToInactive();
 
@@ -146,6 +151,11 @@ class MacOSVM{
             pageOutDaemon();
         }
     }
+    */
+
+
+
+
 
     /**************************************************************/
     /* Method: moveOldActiveToInactive */
@@ -168,7 +178,7 @@ class MacOSVM{
         for(MacPage p : toMove){
             active.remove(p);
             inactive.add(p);
-            System.out.println("Moved page " + p.pageNumber + " from active to inactive");
+            System.out.println("    Moved page " + p.pageNumber + " from active to inactive");
         }
     }
 
@@ -180,29 +190,35 @@ class MacOSVM{
     /**************************************************************/
     private void pageOutDaemon(){
         long now = System.currentTimeMillis();
-        System.out.println("Page-out daemon");
+        System.out.println("    Running Page-out Daemon");
         boolean urgent = false;
         if(freePages == 0){
             urgent = true;
         }
 
-        Iterator<MacPage> index = inactive.iterator();
-        while(index.hasNext() && freePages < targetFree){
-            MacPage p = index.next();
+        List<MacPage> pagesToRemove = new ArrayList<>();
+
+        for(MacPage p : inactive){
+            if(freePages >= targetFree){
+                break;
+            }
+
             long age = now - p.lastAccessTime;
-            
+
             if(age > inactiveThreshold || urgent){
                 if(p.modified){
-                    System.out.println("Paging out modified page " + p.pageNumber + " to disk");
+                    System.out.println("    Paging out modified page " + p.pageNumber + " to disk");
                 }else{
-                    System.out.println("Dropping clean page " + p.pageNumber);
+                    System.out.println("    Dropping clean page " + p.pageNumber);
                 }
 
-                index.remove();
+                pagesToRemove.add(p);
                 pageTable.remove(p.pageNumber);
                 freePages++;
             }
         }
+
+        inactive.removeAll(pagesToRemove);
     }
 
     public void printState(){
@@ -223,11 +239,11 @@ class MacOSVM{
 
 public class MacOS{
     public static void main(String[] args) throws InterruptedException{
-        MacOSVM vm = new MacOSVM(5);
-        System.out.println("=== MacOS Page Replacement ===\n");
+        MacPageReplacement vm = new MacPageReplacement(5);
+        System.out.println("MacOS Page Replacement\n");
 
 
-        System.out.println("=== Adding Pages to RAM ===\n");
+        System.out.println("Adding Pages to RAM\n");
         int[] sequence = {1, 2, 3, 1, 4};
         for(int i = 0; i < sequence.length; i++){
             int page = sequence[i];
@@ -237,7 +253,7 @@ public class MacOS{
             Thread.sleep(100); // sleep so ages change over time
         }
 
-        System.out.println("=== Testing Page Out Daemon ===\n");
+        System.out.println("Testing Page Out Daemon\n");
         int[] sequence1 = {7,8,9};
         for(int i = 0; i < sequence1.length; i++){
             int page = sequence1[i];
@@ -247,7 +263,7 @@ public class MacOS{
             Thread.sleep(100); // sleep so ages change over time
         }
 
-        System.out.println("=== Active to Inactive ===\n");
+        System.out.println("Active to Inactive\n");
         for(int i = 0; i < 3; i++){
             int page = 1;
             boolean write = false; //Write does not affect the algorithm, just set it to false so its easier to read
